@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // Asegúrate de qu
 
 class AuthService {
   // La URL base de tu backend.
-  final String _baseUrl = "http://192.168.137.1:8000";
+  final String _baseUrl = "https://fastapi-idiomas.onrender.com/";
 
   // --- AÑADE ESTE MÉTODO DE AYUDA ---
   Future<String?> _getToken() async {
@@ -18,10 +18,7 @@ class AuthService {
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/x-www-form-urlencoded"},
-      body: {
-        'username': email,
-        'password': password,
-      },
+      body: {'username': email, 'password': password},
     );
 
     if (response.statusCode == 200) {

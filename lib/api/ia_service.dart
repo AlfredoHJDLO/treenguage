@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class IaService {
-  final String _baseUrl = "http://192.168.137.1:8000"; // Tu IP local
+  final String _baseUrl =
+      "https://fastapi-idiomas.onrender.com/"; // Tu IP local
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -20,8 +21,8 @@ class IaService {
     final url = Uri.parse('$_baseUrl/ia/explicar-error');
 
     // Creamos un texto descriptivo para que la IA tenga más contexto
-    final errorDescription = 
-      "El usuario está aprendiendo $languageName. La respuesta correcta era '$correctAnswer', pero el usuario escribió '$userAnswer'.";
+    final errorDescription =
+        "El usuario está aprendiendo $languageName. La respuesta correcta era '$correctAnswer', pero el usuario escribió '$userAnswer'.";
 
     final response = await http.post(
       url,
@@ -31,7 +32,8 @@ class IaService {
       },
       body: json.encode({
         'error_usuario': errorDescription,
-        'idioma': languageName, // Le decimos a la IA en qué idioma dar la explicación
+        'idioma':
+            languageName, // Le decimos a la IA en qué idioma dar la explicación
       }),
     );
 

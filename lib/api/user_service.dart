@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserService {
-  final String _baseUrl = "http://192.168.137.1:8000"; // Tu IP
+  final String _baseUrl = "https://fastapi-idiomas.onrender.com/"; // Tu IP
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();

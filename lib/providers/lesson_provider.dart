@@ -62,13 +62,12 @@ class LessonProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void checkSentenceAnswer(String userAnswer) async{
+  void checkSentenceAnswer(String userAnswer) async {
     if (currentActivity == null || currentActivity['tipo'] != 'ORACION') return;
 
     final String correctAnswer =
         currentActivity['contenido']['frase_correcta'] ?? '';
 
-    
     _aiFeedback = null;
     // Comparamos en minúsculas y sin espacios extra para ser más flexibles
     if (userAnswer.trim().toLowerCase() == correctAnswer.trim().toLowerCase()) {
@@ -79,9 +78,10 @@ class LessonProvider extends ChangeNotifier {
         // Necesitamos el nombre del idioma, que por ahora no tenemos aquí.
         // Lo pondremos como "Portugués" de forma fija por ahora.
         _aiFeedback = await _iaService.getErrorExplanation(
-            userAnswer: userAnswer,
-            correctAnswer: correctAnswer,
-            languageName: "portugués");
+          userAnswer: userAnswer,
+          correctAnswer: correctAnswer,
+          languageName: "portugués",
+        );
       } catch (e) {
         _aiFeedback = "No se pudo cargar la sugerencia.";
       }
@@ -137,7 +137,7 @@ class LessonProvider extends ChangeNotifier {
     // TODO: Mover esta lógica a un servicio (ej. VerificationService)
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('authToken');
-    const String baseUrl = "http://192.168.137.1:8000";
+    const String baseUrl = "https://fastapi-idiomas.onrender.com/";
     final url = Uri.parse('$baseUrl/ia/verificar-voz');
 
     try {

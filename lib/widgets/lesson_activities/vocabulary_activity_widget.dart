@@ -10,7 +10,8 @@ class VocabularyActivityWidget extends StatefulWidget {
   VocabularyActivityWidget({super.key, required this.contenido});
 
   @override
-  State<VocabularyActivityWidget> createState() => _VocabularyActivityWidgetState();
+  State<VocabularyActivityWidget> createState() =>
+      _VocabularyActivityWidgetState();
 }
 
 class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
@@ -32,7 +33,9 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
     // Comparamos el contenido del widget anterior con el nuevo.
     // Si el ID de la palabra es diferente, significa que es una nueva actividad de vocabulario.
     if (widget.contenido['id'] != oldWidget.contenido['id']) {
-      print("Widget actualizado con una nueva palabra, registrando progreso...");
+      print(
+        "Widget actualizado con una nueva palabra, registrando progreso...",
+      );
       _registrarProgreso();
     }
   }
@@ -41,14 +44,18 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
   void _registrarProgreso() {
     final int? palabraId = widget.contenido['id'];
     if (palabraId != null) {
-      Provider.of<LessonProvider>(context, listen: false)
-          .registrarPalabraVista(palabraId);
+      Provider.of<LessonProvider>(
+        context,
+        listen: false,
+      ).registrarPalabraVista(palabraId);
     }
   }
 
   // La nueva función que primero descarga y luego reproduce
   Future<void> _playAudio(BuildContext context) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context); // Guardamos una referencia
+    final scaffoldMessenger = ScaffoldMessenger.of(
+      context,
+    ); // Guardamos una referencia
 
     try {
       final int? palabraId = widget.contenido['id'];
@@ -56,10 +63,11 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
       if (palabraId == null) {
         throw Exception("No se encontró el ID de la palabra.");
       }
-      
-      final String baseUrl = "http://192.168.137.1:8000"; // Tu IP local
+
+      final String baseUrl =
+          "https://fastapi-idiomas.onrender.com/"; // Tu IP local
       final String url = "$baseUrl/audio/vocabulario/$palabraId";
-      
+
       print("1. Descargando audio desde: $url");
 
       // PASO 1: Descargar el audio usando el paquete http
@@ -67,15 +75,16 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
 
       if (response.statusCode == 200) {
         print("2. Descarga completa. Reproduciendo bytes de audio...");
-        
+
         // PASO 2: Reproducir los bytes descargados
         // Usamos BytesSource en lugar de UrlSource
         await _audioPlayer.play(BytesSource(response.bodyBytes));
         print("3. La reproducción se inició correctamente.");
-
       } else {
         // Si el backend devuelve un error
-        throw Exception("El servidor devolvió un error: ${response.statusCode}");
+        throw Exception(
+          "El servidor devolvió un error: ${response.statusCode}",
+        );
       }
     } catch (e) {
       print("¡ERROR! Excepción atrapada: $e");
@@ -99,9 +108,15 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Aprende esta palabra:', style: TextStyle(color: Colors.grey[600], fontSize: 20)),
+            Text(
+              'Aprende esta palabra:',
+              style: TextStyle(color: Colors.grey[600], fontSize: 20),
+            ),
             const SizedBox(height: 30),
-            Text(palabra, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+            Text(
+              palabra,
+              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+            ),
             IconButton(
               icon: const Icon(Icons.volume_up),
               iconSize: 40,
@@ -109,7 +124,10 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
               onPressed: () => _playAudio(context),
             ),
             const SizedBox(height: 20),
-            Text(traduccion, style: TextStyle(fontSize: 28, color: Colors.grey[800])),
+            Text(
+              traduccion,
+              style: TextStyle(fontSize: 28, color: Colors.grey[800]),
+            ),
           ],
         ),
       ),

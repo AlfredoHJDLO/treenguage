@@ -22,7 +22,7 @@ class _VoiceActivityWidgetState extends State<VoiceActivityWidget> {
   final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecording = false;
   // Usaremos este nombre de variable para ser consistentes
-  String _transcribedText = ''; 
+  String _transcribedText = '';
   bool _isProcessing = false;
 
   @override
@@ -73,7 +73,10 @@ class _VoiceActivityWidgetState extends State<VoiceActivityWidget> {
       try {
         final transcription = await _uploadAudio(path);
         setState(() {
-          _transcribedText = transcription.isEmpty ? "No se pudo reconocer la voz." : transcription;
+          _transcribedText =
+              transcription.isEmpty
+                  ? "No se pudo reconocer la voz."
+                  : transcription;
         });
       } catch (e) {
         setState(() {
@@ -90,16 +93,18 @@ class _VoiceActivityWidgetState extends State<VoiceActivityWidget> {
   Future<String> _uploadAudio(String filePath) async {
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('authToken');
-    const String baseUrl = "http://192.168.137.1:8000"; // Tu IP
+    const String baseUrl = "https://fastapi-idiomas.onrender.com/"; // Tu IP
     final url = Uri.parse('$baseUrl/ia/transcribir-audio');
 
     var request = http.MultipartRequest('POST', url);
     request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(await http.MultipartFile.fromPath(
-      'audio_file',
-      filePath,
-      contentType: MediaType('audio', 'wav'),
-    ));
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'audio_file',
+        filePath,
+        contentType: MediaType('audio', 'wav'),
+      ),
+    );
 
     final response = await request.send();
     final responseBody = await response.stream.bytesToString();
@@ -107,7 +112,9 @@ class _VoiceActivityWidgetState extends State<VoiceActivityWidget> {
     if (response.statusCode == 200) {
       return json.decode(responseBody)['transcripcion'];
     } else {
-      throw Exception('Error del servidor: ${response.statusCode} - $responseBody');
+      throw Exception(
+        'Error del servidor: ${response.statusCode} - $responseBody',
+      );
     }
   }
 
@@ -121,43 +128,64 @@ class _VoiceActivityWidgetState extends State<VoiceActivityWidget> {
       children: [
         Column(
           children: [
-            const Text('Repite la siguiente frase:', style: TextStyle(fontSize: 20)),
+            const Text(
+              'Repite la siguiente frase:',
+              style: TextStyle(fontSize: 20),
+            ),
             const SizedBox(height: 16),
             Text(
               fraseARepetir,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
         ),
-        
+
         Expanded(
           child: Center(
             child: Text(
-              _transcribedText.isEmpty ? 'Toca el micrófono para empezar a hablar...' : _transcribedText,
-              style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.w300),
+              _transcribedText.isEmpty
+                  ? 'Toca el micrófono para empezar a hablar...'
+                  : _transcribedText,
+              style: const TextStyle(
+                fontSize: 22.0,
+                fontWeight: FontWeight.w300,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
         ),
-        
+
         Column(
           children: [
             _isProcessing
-              ? const CircularProgressIndicator()
-              : FloatingActionButton(
+                ? const CircularProgressIndicator()
+                : FloatingActionButton(
                   onPressed: _toggleRecording,
-                  backgroundColor: _isRecording ? Colors.red : Colors.green.shade700,
-                  child: Icon(_isRecording ? Icons.stop : Icons.mic, color: Colors.white),
+                  backgroundColor:
+                      _isRecording ? Colors.red : Colors.green.shade700,
+                  child: Icon(
+                    _isRecording ? Icons.stop : Icons.mic,
+                    color: Colors.white,
+                  ),
                 ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: (_transcribedText.isEmpty || _isProcessing || _isRecording) ? null : () {
-                if (actividadVozId != null) {
-                  Provider.of<LessonProvider>(context, listen: false)
-                      .checkVoiceAnswer(actividadVozId, _transcribedText);
-                }
-              },
+              onPressed:
+                  (_transcribedText.isEmpty || _isProcessing || _isRecording)
+                      ? null
+                      : () {
+                        if (actividadVozId != null) {
+                          Provider.of<LessonProvider>(
+                            context,
+                            listen: false,
+                          ).checkVoiceAnswer(actividadVozId, _transcribedText);
+                        }
+                      },
               child: const Text('Verificar'),
             ),
           ],

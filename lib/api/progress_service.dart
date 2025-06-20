@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProgressService {
-  final String _baseUrl = "http://192.168.137.1:8000"; // Tu URL del backend
+  final String _baseUrl =
+      "https://fastapi-idiomas.onrender.com/"; // Tu URL del backend
 
   Future<Map<String, dynamic>> getEstadoActual() async {
     // Primero, obtenemos el token guardado
@@ -39,7 +40,8 @@ class ProgressService {
   }
 
   Future<void> actualizarProgresoVocabulario(int palabraId) async {
-    final token = await _getToken(); // Reutilizamos el método para obtener el token
+    final token =
+        await _getToken(); // Reutilizamos el método para obtener el token
     final url = Uri.parse('$_baseUrl/progreso/vocabulario');
 
     // El backend espera el id de la palabra, y podemos definir el nuevo estado.
@@ -54,7 +56,7 @@ class ProgressService {
         'id_palabra': palabraId,
         'aciertos': 1,
         'fallos': 0,
-        'estado_aprendizaje': 'APRENDIENDO'
+        'estado_aprendizaje': 'APRENDIENDO',
       }),
     );
 
@@ -85,7 +87,7 @@ class ProgressService {
       body: json.encode({
         'estado': 'COMPLETADA',
         // Podemos poner cualquier valor aquí, el backend lo actualizará
-        'ultima_actividad': 999 
+        'ultima_actividad': 999,
       }),
     );
 

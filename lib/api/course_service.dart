@@ -7,7 +7,7 @@ import 'package:treenguage/models/leccion_model.dart';
 import 'package:treenguage/models/nivel_model.dart';
 
 class CourseService {
-  final String _baseUrl = "http://192.168.137.1:8000";
+  final String _baseUrl = "https://fastapi-idiomas.onrender.com/";
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -72,7 +72,10 @@ class CourseService {
   Future<List<Idioma>> getIdiomas() async {
     final token = await _getToken();
     final url = Uri.parse('$_baseUrl/idiomas'); // Llama al endpoint de idiomas
-    final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);

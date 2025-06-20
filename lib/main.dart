@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'treenguage',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primarySwatch: Colors.green,
           scaffoldBackgroundColor: const Color(0xFFF1F8E9),
