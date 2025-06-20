@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:treenguage/providers/dashboard_provider.dart';
 import 'package:treenguage/providers/lesson_provider.dart';
+import 'package:treenguage/screens/lesson/lesson_complete_screen.dart';
 import 'package:treenguage/widgets/lesson_activities/vocabulary_activity_widget.dart';
 import 'package:treenguage/widgets/lesson_activities/sentence_activity_widget.dart';
 import 'package:treenguage/widgets/lesson_activities/video_activity_widget.dart';
+import 'package:treenguage/widgets/lesson_activities/voice_activity_widget.dart';
 
 class LessonScreen extends StatefulWidget {
   final int leccionId;
@@ -92,17 +95,25 @@ class _LessonScreenState extends State<LessonScreen> {
         const SizedBox(height: 16),
         // --- Lógica del Botón Siguiente ---
         SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            // El botón se activa si la respuesta es correcta O si la actividad no requiere verificación
-            onPressed:
-                provider.activityStatus == ActivityStatus.correct ||
-                        !provider.activityRequiresVerification
-                    ? () => provider.goToNextActivity()
-                    : null, // Deshabilitado si la respuesta es incorrecta o inicial
-            child: const Text('Siguiente'),
-          ),
-        ),
+  width: double.infinity,
+  child: ElevatedButton(
+    onPressed: provider.activityStatus == ActivityStatus.correct || !provider.activityRequiresVerification
+  ? () async {
+      final bool leccionCompletada = await provider.goToNextActivity();
+
+      if (!mounted) return;
+
+      if (leccionCompletada) {
+        // En lugar de refrescar y volver, ahora navegamos a la pantalla de felicitaciones
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LessonCompleteScreen()),
+        );
+      }
+    }
+  : null,
+    child: const Text('Siguiente'),
+  ),
+),
       ],
     );
   }
@@ -120,7 +131,7 @@ class _LessonScreenState extends State<LessonScreen> {
       case 'VIDEO':
         return VideoActivityWidget(contenido: contenido);
       case 'VOZ':
-        return Center(child: Text('Actividad de Voz'));
+        return VoiceActivityWidget(contenido: contenido);
       default:
         return Center(child: Text('Tipo de actividad desconocido: $tipo'));
     }

@@ -1,19 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:http/http.dart' as http; // Importamos el paquete http
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:treenguage/providers/lesson_provider.dart'; // Importamos el paquete http
 
-class VocabularyActivityWidget extends StatelessWidget {
+class VocabularyActivityWidget extends StatefulWidget {
   final Map<String, dynamic> contenido;
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   VocabularyActivityWidget({super.key, required this.contenido});
+
+  @override
+  State<VocabularyActivityWidget> createState() => _VocabularyActivityWidgetState();
+}
+
+class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    // La llamada en initState es correcta para la *primera vez* que el widget aparece.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _registrarProgreso();
+    });
+  }
+
+  // --- AÑADIMOS ESTE NUEVO MÉTODO ---
+  @override
+  void didUpdateWidget(covariant VocabularyActivityWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Comparamos el contenido del widget anterior con el nuevo.
+    // Si el ID de la palabra es diferente, significa que es una nueva actividad de vocabulario.
+    if (widget.contenido['id'] != oldWidget.contenido['id']) {
+      print("Widget actualizado con una nueva palabra, registrando progreso...");
+      _registrarProgreso();
+    }
+  }
+
+  // Creamos una función helper para no repetir código
+  void _registrarProgreso() {
+    final int? palabraId = widget.contenido['id'];
+    if (palabraId != null) {
+      Provider.of<LessonProvider>(context, listen: false)
+          .registrarPalabraVista(palabraId);
+    }
+  }
 
   // La nueva función que primero descarga y luego reproduce
   Future<void> _playAudio(BuildContext context) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context); // Guardamos una referencia
 
     try {
-      final int? palabraId = contenido['id'];
+      final int? palabraId = widget.contenido['id'];
 
       if (palabraId == null) {
         throw Exception("No se encontró el ID de la palabra.");
@@ -52,8 +90,8 @@ class VocabularyActivityWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String palabra = contenido['palabra'] ?? 'N/A';
-    final String traduccion = contenido['traduccion'] ?? 'N/A';
+    final String palabra = widget.contenido['palabra'] ?? 'N/A';
+    final String traduccion = widget.contenido['traduccion'] ?? 'N/A';
 
     return Card(
       elevation: 4,

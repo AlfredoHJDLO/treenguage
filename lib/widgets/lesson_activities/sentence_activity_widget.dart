@@ -105,7 +105,7 @@ class _SentenceActivityWidgetState extends State<SentenceActivityWidget> {
             // Unimos las palabras seleccionadas para formar la respuesta
             String respuesta = _respuestaUsuario.join(' ');
             
-            // Llamamos al método del provider para verificar la respuesta
+            // Llamamos al método del provider que ya existe para verificar
             Provider.of<LessonProvider>(context, listen: false)
                 .checkSentenceAnswer(respuesta);
           },

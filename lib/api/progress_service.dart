@@ -37,4 +37,60 @@ class ProgressService {
       throw Exception('Error al obtener el estado del progreso');
     }
   }
+
+  Future<void> actualizarProgresoVocabulario(int palabraId) async {
+    final token = await _getToken(); // Reutilizamos el método para obtener el token
+    final url = Uri.parse('$_baseUrl/progreso/vocabulario');
+
+    // El backend espera el id de la palabra, y podemos definir el nuevo estado.
+    // Lo marcaremos como 'APRENDIENDO' con 1 acierto por haberla visto.
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode({
+        'id_palabra': palabraId,
+        'aciertos': 1,
+        'fallos': 0,
+        'estado_aprendizaje': 'APRENDIENDO'
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar el progreso del vocabulario');
+    }
+    // Si todo va bien, no necesitamos hacer nada más.
+  }
+
+  // Método helper para obtener el token (si no lo tienes ya)
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('authToken');
+  }
+
+  Future<void> marcarLeccionComoCompletada(int leccionId) async {
+    final token = await _getToken();
+    // El endpoint que ya existe en routers/progreso.py
+    final url = Uri.parse('$_baseUrl/progreso/lecciones/$leccionId');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      // Le decimos al backend que el nuevo estado es "COMPLETADA"
+      body: json.encode({
+        'estado': 'COMPLETADA',
+        // Podemos poner cualquier valor aquí, el backend lo actualizará
+        'ultima_actividad': 999 
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al marcar la lección como completada');
+    }
+  }
 }

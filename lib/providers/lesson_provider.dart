@@ -1,11 +1,17 @@
 // lib/providers/lesson_provider.dart
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:treenguage/api/course_service.dart';
+import 'package:treenguage/api/progress_service.dart';
 
 enum ActivityStatus { initial, correct, incorrect }
 
 class LessonProvider extends ChangeNotifier {
   final CourseService _courseService = CourseService();
+  final ProgressService _progressService = ProgressService();
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -13,6 +19,7 @@ class LessonProvider extends ChangeNotifier {
   int _currentActivityIndex = 0;
   
   ActivityStatus _activityStatus = ActivityStatus.initial;
+  int? _currentLessonId;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -21,11 +28,15 @@ class LessonProvider extends ChangeNotifier {
   dynamic get currentActivity =>
       _activities.isNotEmpty ? _activities[_currentActivityIndex] : null;
   ActivityStatus get activityStatus => _activityStatus;
-  bool get activityRequiresVerification {
-    if (currentActivity == null) return false;
-    // Solo la actividad de ORACION requiere verificación por ahora
-    return currentActivity['tipo'] == 'ORACION';
-  }
+  // EN lib/providers/lesson_provider.dart
+
+bool get activityRequiresVerification {
+  if (currentActivity == null) return false;
+
+  final tipo = currentActivity['tipo'];
+  // Ahora, la verificación es necesaria para estos tres tipos
+  return tipo == 'ORACION' || tipo == 'VIDEO' || tipo == 'VOZ';
+}
 
   // TODO: Añadir lógica para verificar la respuesta y saber si es correcta
   // bool _isAnswerCorrect = false;
@@ -34,6 +45,7 @@ class LessonProvider extends ChangeNotifier {
   // ...
   Future<void> fetchActivities(int leccionId) async {
     _isLoading = true;
+    _currentLessonId = leccionId; // <-- Guardamos el ID de la lección aquí
     _errorMessage = null;
     notifyListeners();
 
@@ -62,14 +74,19 @@ class LessonProvider extends ChangeNotifier {
   }
 
   // 5. Modificamos goToNextActivity para resetear el estado
-  void goToNextActivity() {
+  Future<bool> goToNextActivity() async {
     if (_currentActivityIndex < _activities.length - 1) {
       _currentActivityIndex++;
-      _activityStatus = ActivityStatus.initial; // Reseteamos el estado para la nueva actividad
+      _activityStatus = ActivityStatus.initial;
       notifyListeners();
+      return false; // No ha terminado
     } else {
       print("¡Lección completada!");
-      // TODO: Navegar a una pantalla de felicitaciones
+      if (_currentLessonId != null) {
+        // Usamos el ID que guardamos al principio, es más seguro
+        await _progressService.marcarLeccionComoCompletada(_currentLessonId!);
+      }
+      return true; // ¡Sí, ha terminado!
     }
   }
 
@@ -91,5 +108,50 @@ class LessonProvider extends ChangeNotifier {
   }
   notifyListeners(); // Notificamos a la UI del cambio de estado
 }
+
+Future<void> checkVoiceAnswer(int actividadVozId, String transcripcion) async {
+    // TODO: Mover esta lógica a un servicio (ej. VerificationService)
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('authToken');
+    const String baseUrl = "http://192.168.137.1:8000";
+    final url = Uri.parse('$baseUrl/ia/verificar-voz');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'id_actividad_voz': actividadVozId,
+          'transcripcion_usuario': transcripcion,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final bool esCorrecta = data['es_correcta'] ?? false;
+        _activityStatus = esCorrecta ? ActivityStatus.correct : ActivityStatus.incorrect;
+      } else {
+        _activityStatus = ActivityStatus.incorrect;
+      }
+    } catch (e) {
+      _activityStatus = ActivityStatus.incorrect;
+      _errorMessage = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> registrarPalabraVista(int palabraId) async {
+    try {
+      // Llama al servicio para registrar el progreso.
+      await _progressService.actualizarProgresoVocabulario(palabraId);
+      print('Progreso para la palabra $palabraId actualizado con éxito.');
+    } catch (e) {
+      // Si falla, podemos imprimir un error, pero no es necesario detener la app.
+      print('Fallo al actualizar el progreso del vocabulario: $e');
+    }
+  }
   
 }
