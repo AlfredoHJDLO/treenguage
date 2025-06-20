@@ -93,7 +93,7 @@ class _VoiceActivityWidgetState extends State<VoiceActivityWidget> {
   Future<String> _uploadAudio(String filePath) async {
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('authToken');
-    const String baseUrl = "https://fastapi-idiomas.onrender.com/"; // Tu IP
+    const String baseUrl = "https://fastapi-idiomas.onrender.com"; // Tu IP
     final url = Uri.parse('$baseUrl/ia/transcribir-audio');
 
     var request = http.MultipartRequest('POST', url);

@@ -65,7 +65,7 @@ class _VocabularyActivityWidgetState extends State<VocabularyActivityWidget> {
       }
 
       final String baseUrl =
-          "https://fastapi-idiomas.onrender.com/"; // Tu IP local
+          "https://fastapi-idiomas.onrender.com"; // Tu IP local
       final String url = "$baseUrl/audio/vocabulario/$palabraId";
 
       print("1. Descargando audio desde: $url");

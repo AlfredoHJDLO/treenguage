@@ -137,7 +137,7 @@ class LessonProvider extends ChangeNotifier {
     // TODO: Mover esta lógica a un servicio (ej. VerificationService)
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('authToken');
-    const String baseUrl = "https://fastapi-idiomas.onrender.com/";
+    const String baseUrl = "https://fastapi-idiomas.onrender.com";
     final url = Uri.parse('$baseUrl/ia/verificar-voz');
 
     try {
