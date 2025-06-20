@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // Asegúrate de qu
 
 class AuthService {
   // La URL base de tu backend.
-  final String _baseUrl = "https://fastapi-idiomas.onrender.com/";
+  final String _baseUrl = "https://fastapi-idiomas.onrender.com";
 
   // --- AÑADE ESTE MÉTODO DE AYUDA ---
   Future<String?> _getToken() async {

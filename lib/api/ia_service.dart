@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class IaService {
   final String _baseUrl =
-      "https://fastapi-idiomas.onrender.com/"; // Tu IP local
+      "https://fastapi-idiomas.onrender.com"; // Tu IP local
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();

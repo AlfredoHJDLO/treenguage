@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ProgressService {
   final String _baseUrl =
-      "https://fastapi-idiomas.onrender.com/"; // Tu URL del backend
+      "https://fastapi-idiomas.onrender.com"; // Tu URL del backend
 
   Future<Map<String, dynamic>> getEstadoActual() async {
     // Primero, obtenemos el token guardado

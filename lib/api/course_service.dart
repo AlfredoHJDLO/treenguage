@@ -7,7 +7,7 @@ import 'package:treenguage/models/leccion_model.dart';
 import 'package:treenguage/models/nivel_model.dart';
 
 class CourseService {
-  final String _baseUrl = "https://fastapi-idiomas.onrender.com/";
+  final String _baseUrl = "https://fastapi-idiomas.onrender.com";
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
