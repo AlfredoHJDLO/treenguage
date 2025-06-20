@@ -60,4 +60,11 @@ class AuthProvider extends ChangeNotifier {
       return false; // Registro fallido
     }
   }
+
+  Future<void> logout() async {
+  // Borramos el token guardado en el dispositivo
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('authToken');
+  notifyListeners();
+}
 }

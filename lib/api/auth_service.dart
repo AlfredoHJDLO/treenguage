@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class AuthService {
   // La URL base de tu backend. Si lo ejecutas localmente, podría ser esta.
   // ¡Asegúrate de que sea la URL correcta de tu servidor en Render!
-  final String _baseUrl = "https://fastapi-idiomas.onrender.com";
+  final String _baseUrl = "http://192.168.137.1:8000";
 
   Future<String> login(String email, String password) async {
     final url = Uri.parse('$_baseUrl/token');
