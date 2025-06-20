@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:treenguage/providers/auth_provider.dart';
 import 'package:treenguage/providers/dashboard_provider.dart'; // Importa el nuevo provider
+import 'package:treenguage/screens/auth/language_selection_screen.dart';
 import 'package:treenguage/screens/auth/login_screen.dart';
 import 'package:treenguage/screens/home/home_screen.dart';
 import 'package:treenguage/screens/auth/register_screen.dart';
@@ -30,11 +31,13 @@ class MyApp extends StatelessWidget {
           scaffoldBackgroundColor: const Color(0xFFF1F8E9),
           fontFamily: 'Roboto',
         ),
-        home: const SplashScreen(),
+        initialRoute: '/',
         routes: {
+          '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
+          '/select-language': (context) => const LanguageSelectionScreen()
         },
       ),
     );

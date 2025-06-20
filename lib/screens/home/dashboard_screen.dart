@@ -1,11 +1,13 @@
 // lib/screens/home/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:treenguage/models/idioma_model.dart';
 import 'package:treenguage/models/leccion_model.dart';
 import 'package:treenguage/models/nivel_model.dart';
 import 'package:treenguage/providers/auth_provider.dart';
 import 'package:treenguage/providers/dashboard_provider.dart';
 import 'package:treenguage/providers/lesson_provider.dart';
+import 'package:treenguage/screens/auth/language_selection_screen.dart';
 import 'package:treenguage/screens/lesson/lesson_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -30,76 +32,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Consumer<DashboardProvider>(
       builder: (context, provider, child) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (provider.isUnauthorized) {
-            // Si no está autorizado, cerramos sesión y vamos al login
-            Provider.of<AuthProvider>(context, listen: false).logout();
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/login',
-              (Route<dynamic> route) => false,
-            );
-          }
-        });
-        // Muestra un indicador de carga mientras se obtienen los datos
+        // 1. Manejo de estados de carga y error (esto está bien)
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
-
-        // Muestra un error si algo falló
         if (provider.errorMessage != null) {
-          return Center(child: Text('Error: ${provider.errorMessage}'));
+          return Scaffold(
+            body: Center(child: Text('Error: ${provider.errorMessage}')),
+          );
         }
-
-        // Si no hay datos, muestra un mensaje
-        if (provider.estadoActual == null) {
-          return const Center(
-            child: Text('No se encontraron datos de progreso.'),
+        if (provider.estadoActual == null || provider.userProfile == null) {
+          return const Scaffold(
+            body: Center(child: Text('No se encontraron datos de progreso.')),
           );
         }
 
-        // Una vez que tenemos los datos, construimos la UI
+        // 2. Extraemos todos los datos necesarios del provider UNA SOLA VEZ
+        final userName = provider.userProfile?['nombre'] ?? 'Usuario';
+        final idiomaActualId = provider.userProfile?['id_idioma_actual'];
         final leccionActual = provider.estadoActual!['leccion_actual'];
+        final progresoLecciones =
+            provider.estadoActual!['progreso_lecciones']
+                as Map<String, dynamic>? ??
+            {};
 
+        String idiomaNombre = 'un idioma';
+        String urlBandera = '';
+        String urlFondo =
+            'https://i.imgur.com/kG0j4f6.png'; // URL de fondo por defecto
+
+        // 3. Buscamos el objeto del idioma actual para obtener su nombre y URLs
+        if (idiomaActualId != null && provider.idiomas.isNotEmpty) {
+          try {
+            final idiomaActual = provider.idiomas.firstWhere(
+              (idioma) => idioma.id == idiomaActualId,
+            );
+            idiomaNombre = idiomaActual.nombre;
+            urlBandera = idiomaActual.urlBandera ?? '';
+            urlFondo = idiomaActual.urlFondoCurso ?? urlFondo;
+          } catch (e) {
+            print(
+              "Error: No se encontró el idioma con ID $idiomaActualId en la lista de idiomas del provider.",
+            );
+          }
+        }
+
+        // 4. Construimos el Scaffold con los datos ya procesados
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            // El título y la foto de perfil que ya teníamos
             title: Text(
-              'Hola Eduardo',
-              style: TextStyle(
+              'Hola, $userName',
+              style: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
-                fontSize: 24,
               ),
             ),
             actions: [
-              // --- AÑADE ESTE BOTÓN ---
+              Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: GestureDetector(
+                  onTap:
+                      () => Navigator.of(context).pushNamed('/select-language'),
+                  child: CircleAvatar(
+                    backgroundImage:
+                        urlBandera.isNotEmpty ? NetworkImage(urlBandera) : null,
+                    child:
+                        urlBandera.isEmpty ? const Icon(Icons.language) : null,
+                  ),
+                ),
+              ),
               IconButton(
                 icon: Icon(Icons.logout, color: Colors.grey[700]),
+                tooltip: 'Cerrar Sesión',
                 onPressed: () async {
-                  // Llama al método de logout del AuthProvider
+                  // 1. Llama al método de logout del AuthProvider
+                  Provider.of<DashboardProvider>(
+                    context,
+                    listen: false,
+                  ).clearData();
+
+                  // 2. Limpiamos el estado de autenticación (borramos el token)
                   await Provider.of<AuthProvider>(
                     context,
                     listen: false,
                   ).logout();
 
-                  if (!mounted) return;
+                  if (!context.mounted) return;
 
-                  // Navega de vuelta al login y elimina todas las pantallas anteriores del historial
+                  // 3. Navegamos al login
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     '/login',
                     (Route<dynamic> route) => false,
                   );
                 },
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: CircleAvatar(
-                  backgroundImage: NetworkImage(
-                    'https://i.pravatar.cc/150?img=12',
-                  ),
-                ),
               ),
             ],
           ),
@@ -109,36 +138,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Estoy aprendiendo: 🇧🇷 Portugués',
+                  'Estoy aprendiendo: $idiomaNombre',
                   style: TextStyle(color: Colors.grey[600], fontSize: 16),
                 ),
                 const SizedBox(height: 24),
 
                 if (leccionActual != null)
-                  _buildContinueLearningCard(leccionActual)
+                  _buildContinueLearningCard(leccionActual, urlFondo)
                 else
                   _buildStartLearningCard(),
 
                 const SizedBox(height: 32),
 
-                // --- AQUÍ VIENE LA MAGIA ---
-                // Usamos un ListView.builder para crear la lista de niveles dinámicamente
                 ListView.builder(
-                  shrinkWrap:
-                      true, // Importante dentro de un SingleChildScrollView
-                  physics:
-                      const NeverScrollableScrollPhysics(), // Para que no haga scroll por sí mismo
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: provider.nivelesDelCurso.length,
-                  itemBuilder: (context, index) {
-                    final nivel = provider.nivelesDelCurso[index];
-                    // Reutilizamos el widget que ya habíamos creado
+                  itemBuilder: (context, nivelIndex) {
+                    final nivel = provider.nivelesDelCurso[nivelIndex];
+                    bool isLevelUnlocked =
+                        (nivel.numeroNivel ==
+                            1); // El nivel 1 siempre está desbloqueado
+
+                    if (!isLevelUnlocked && nivelIndex > 0) {
+                      final nivelAnterior =
+                          provider.nivelesDelCurso[nivelIndex - 1];
+                      if (nivelAnterior.lecciones.isNotEmpty) {
+                        final ultimaLeccionAnteriorId =
+                            nivelAnterior.lecciones.last.id;
+                        if (progresoLecciones[ultimaLeccionAnteriorId
+                                .toString()] ==
+                            'COMPLETADA') {
+                          isLevelUnlocked = true;
+                        }
+                      }
+                    }
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 24.0),
-                      child: _buildLevelSection(nivel: nivel),
+                      child: _buildLevelSection(
+                        nivel: nivel,
+                        progresoLecciones: progresoLecciones,
+                        isLevelUnlocked: isLevelUnlocked,
+                      ),
                     );
                   },
                 ),
-                
               ],
             ),
           ),
@@ -148,48 +193,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // --- WIDGET DINÁMICO ---
-  Widget _buildContinueLearningCard(Map<String, dynamic> leccion) {
-    return Container(
-      // ... (mismo estilo que antes)
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: DecorationImage(
-          image: NetworkImage('https://i.imgur.com/kG0j4f6.png'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.3),
-            BlendMode.darken,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // En lib/screens/home/dashboard_screen.dart
+
+  Widget _buildContinueLearningCard(
+    Map<String, dynamic> leccion,
+    String backgroundUrl,
+  ) {
+    return ClipRRect(
+      // Usamos ClipRRect para que la imagen no se salga de los bordes redondeados
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
+        // Stack nos permite poner widgets uno encima de otro
         children: [
-          const Text(
-            'Continua aprendiendo:',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          // Usamos el título de la lección que viene del backend
-          Text(
-            leccion['titulo'] ?? 'Lección sin título',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
+          // --- Capa 1: La Imagen de Fondo Rotada ---
+          Positioned.fill(
+            child: RotatedBox(
+              quarterTurns: 0, // Gira la imagen 180 grados (2 * 90 grados)
+              child: Image.network(backgroundUrl, fit: BoxFit.cover),
             ),
           ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.green,
-              ),
-              child: const Text('CONTINUAR'),
+
+          // --- Capa 2: Un filtro oscuro para que el texto resalte ---
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.3)),
+            ),
+          ),
+
+          // --- Capa 3: El Contenido de la Tarjeta ---
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Continua aprendiendo:',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  leccion['titulo'] ?? 'Lección sin título',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Lógica de navegación
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green,
+                    ),
+                    child: const Text('CONTINUAR'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -221,40 +285,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Widget para construir una sección de nivel
   // Modifica este método en dashboard_screen.dart
-  Widget _buildLevelSection({required Nivel nivel}) {
-    // Aquí podrías añadir lógica para saber si el nivel está bloqueado
-    // basado en el progreso del usuario
-    bool isLevelUnlocked =
-        nivel.numeroNivel == 1; // Ejemplo: solo el nivel 1 está desbloqueado
-
+  Widget _buildLevelSection({
+    required Nivel nivel,
+    required Map<String, dynamic> progresoLecciones,
+    required bool isLevelUnlocked,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '${nivel.titulo} >',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: isLevelUnlocked ? Colors.black : Colors.grey,
+          ),
         ),
         const SizedBox(height: 16),
-        // Creamos la fila de tarjetas de lección
-        Row(
-          children: [
-            // Mostramos las primeras dos lecciones del nivel
-            if (nivel.lecciones.isNotEmpty)
-              _buildLessonCard(
-                leccion: nivel.lecciones[0],
-                isLocked:
-                    !isLevelUnlocked, // La primera lección está desbloqueada si el nivel lo está
-              ),
-            const SizedBox(width: 16),
-            if (nivel.lecciones.length > 1)
-              _buildLessonCard(
-                leccion: nivel.lecciones[1],
-                isLocked:
-                    true, // La segunda lección siempre está bloqueada en este ejemplo
-              ),
-            const Spacer(), // Ocupa el espacio restante
-            Icon(Icons.arrow_forward_ios, color: Colors.grey[400]),
-          ],
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: nivel.lecciones.length,
+            itemBuilder: (context, index) {
+              final leccion = nivel.lecciones[index];
+              bool isLessonLocked = true;
+
+              if (isLevelUnlocked) {
+                if (index == 0) {
+                  isLessonLocked = false;
+                } else {
+                  final leccionAnterior = nivel.lecciones[index - 1];
+                  final estadoAnterior =
+                      progresoLecciones[leccionAnterior.id.toString()];
+                  isLessonLocked = estadoAnterior != 'COMPLETADA';
+                }
+              }
+
+              return Container(
+                width: 150,
+                margin: const EdgeInsets.only(right: 16.0),
+                child: _buildLessonCard(
+                  leccion: leccion,
+                  isLocked: isLessonLocked,
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -262,60 +339,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Modifica también _buildLessonCard para que acepte un objeto Leccion
   Widget _buildLessonCard({required Leccion leccion, required bool isLocked}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap:
-            isLocked
-                ? null
-                : () {
-                  // El `onTap` solo funciona si no está bloqueado
-                  // Navegamos a la pantalla de la lección
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ChangeNotifierProvider(
-                            create:
-                                (_) =>
-                                    LessonProvider(), // Creamos una nueva instancia del provider
-                            child: LessonScreen(
-                              leccionId: leccion.id,
-                            ), // Le pasamos el ID de la lección
-                          ),
-                    ),
-                  );
-                },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isLocked ? Colors.grey[300] : Colors.green[100],
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                isLocked ? Icons.lock : Icons.play_arrow,
-                color: isLocked ? Colors.grey[600] : Colors.green[800],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Lección ${leccion.numeroLeccion}', // Título dinámico
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isLocked ? Colors.grey[600] : Colors.black,
+    // Ya no necesitamos Expanded aquí porque el ListView maneja el tamaño
+    return GestureDetector(
+      onTap:
+          isLocked
+              ? null
+              : () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => ChangeNotifierProvider(
+                          create: (_) => LessonProvider(),
+                          child: LessonScreen(leccionId: leccion.id),
+                        ),
+                  ),
+                );
+              },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isLocked ? Colors.grey[300] : Colors.green[100],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(
+              isLocked ? Icons.lock : Icons.play_arrow,
+              color: isLocked ? Colors.grey[600] : Colors.green[800],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Lección ${leccion.numeroLeccion}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isLocked ? Colors.grey[600] : Colors.black,
+                  ),
                 ),
-              ),
-              Text(
-                leccion.titulo, // Subtítulo dinámico
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isLocked ? Colors.grey[600] : Colors.black,
+                Text(
+                  leccion.titulo,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isLocked ? Colors.grey[600] : Colors.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );

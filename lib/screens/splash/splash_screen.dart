@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:treenguage/api/auth_service.dart';
+import 'package:treenguage/providers/dashboard_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,26 +18,45 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkLoginStatus();
   }
 
-  Future<void> _checkLoginStatus() async {
-    // Espera 2 segundos para mostrar el logo
-    await Future.delayed(const Duration(seconds: 2));
+  // En lib/screens/splash/splash_screen.dart
+Future<void> _checkLoginStatus() async {
+  await Future.delayed(const Duration(seconds: 1)); 
 
-    // Revisa si tenemos un token guardado
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('authToken');
+  final prefs = await SharedPreferences.getInstance();
+  final String? token = prefs.getString('authToken');
 
-    if (!mounted) return; // Buena práctica para evitar errores si el widget se destruye
+  if (!mounted) return;
 
-    if (token != null) {
-      // Si hay un token, el usuario ya ha iniciado sesión.
-      // Aquí podrías verificar si el token aún es válido llamando a un endpoint como /users/me
-      // Por ahora, lo llevamos directamente a la pantalla principal.
-      Navigator.of(context).pushReplacementNamed('/home');
-    } else {
-      // Si no hay token, lo llevamos a la pantalla de inicio de sesión.
+  if (token != null) {
+    print("Token encontrado. Verificando perfil de usuario...");
+    try {
+      // Le pedimos al DashboardProvider que cargue TODOS los datos iniciales
+      final dashboardProvider = Provider.of<DashboardProvider>(context, listen: false);
+      dashboardProvider.clearData();
+      await dashboardProvider.fetchDashboardData();
+
+      if (!mounted) return;
+
+      // Ahora que los datos están cargados, revisamos el perfil
+      final userProfile = dashboardProvider.userProfile;
+      final idIdioma = userProfile?['id_idioma_actual'];
+
+      if (idIdioma != null) {
+        print("Usuario tiene idioma. Navegando a /home...");
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        print("Usuario NO tiene idioma. Navegando a /select-language...");
+        Navigator.of(context).pushReplacementNamed('/select-language');
+      }
+    } catch (e) {
+      print("Token inválido o error de red: $e. Navegando a /login...");
       Navigator.of(context).pushReplacementNamed('/login');
     }
+  } else {
+    print("No hay token. Navegando a /login...");
+    Navigator.of(context).pushReplacementNamed('/login');
   }
+}
 
   @override
   Widget build(BuildContext context) {

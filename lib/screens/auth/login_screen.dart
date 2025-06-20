@@ -24,7 +24,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (success) {
         // Si el login es exitoso, navegamos a la pantalla principal
-        Navigator.of(context).pushReplacementNamed('/home');
+       Navigator.of(context)
+            .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
       } else {
         // Si falla, mostramos un mensaje de error
         ScaffoldMessenger.of(context).showSnackBar(

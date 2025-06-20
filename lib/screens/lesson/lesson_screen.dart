@@ -95,25 +95,30 @@ class _LessonScreenState extends State<LessonScreen> {
         const SizedBox(height: 16),
         // --- Lógica del Botón Siguiente ---
         SizedBox(
-  width: double.infinity,
-  child: ElevatedButton(
-    onPressed: provider.activityStatus == ActivityStatus.correct || !provider.activityRequiresVerification
-  ? () async {
-      final bool leccionCompletada = await provider.goToNextActivity();
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed:
+                provider.activityStatus == ActivityStatus.correct ||
+                        !provider.activityRequiresVerification
+                    ? () async {
+                      final bool leccionCompletada =
+                          await provider.goToNextActivity();
 
-      if (!mounted) return;
+                      if (!mounted) return;
 
-      if (leccionCompletada) {
-        // En lugar de refrescar y volver, ahora navegamos a la pantalla de felicitaciones
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LessonCompleteScreen()),
-        );
-      }
-    }
-  : null,
-    child: const Text('Siguiente'),
-  ),
-),
+                      if (leccionCompletada) {
+                        // En lugar de refrescar y volver, ahora navegamos a la pantalla de felicitaciones
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => const LessonCompleteScreen(),
+                          ),
+                        );
+                      }
+                    }
+                    : null,
+            child: const Text('Siguiente'),
+          ),
+        ),
       ],
     );
   }
@@ -155,18 +160,30 @@ class _LessonScreenState extends State<LessonScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       color: colorFondo,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, color: Colors.white),
-          const SizedBox(width: 16),
-          Text(
-            mensaje,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+          Row(
+            children: [
+              Icon(icono, color: Colors.white),
+              const SizedBox(width: 16),
+              Text(
+                mensaje,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
           ),
+          if (provider.aiFeedback != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              provider.aiFeedback!,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ],
         ],
       ),
     );

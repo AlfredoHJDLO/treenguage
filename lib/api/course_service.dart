@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:treenguage/models/idioma_model.dart';
 import 'package:treenguage/models/leccion_model.dart';
 import 'package:treenguage/models/nivel_model.dart';
 
@@ -65,6 +66,19 @@ class CourseService {
       return json.decode(response.body);
     } else {
       throw Exception('Error al obtener las actividades de la lección');
+    }
+  }
+
+  Future<List<Idioma>> getIdiomas() async {
+    final token = await _getToken();
+    final url = Uri.parse('$_baseUrl/idiomas'); // Llama al endpoint de idiomas
+    final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Idioma.fromJson(json)).toList();
+    } else {
+      throw Exception('Error al obtener los idiomas');
     }
   }
 }

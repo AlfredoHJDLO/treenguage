@@ -6,10 +6,12 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:treenguage/api/course_service.dart';
 import 'package:treenguage/api/progress_service.dart';
+import 'package:treenguage/api/ia_service.dart';
 
 enum ActivityStatus { initial, correct, incorrect }
 
 class LessonProvider extends ChangeNotifier {
+  final IaService _iaService = IaService();
   final CourseService _courseService = CourseService();
   final ProgressService _progressService = ProgressService();
 
@@ -17,7 +19,8 @@ class LessonProvider extends ChangeNotifier {
   String? _errorMessage;
   List<dynamic> _activities = [];
   int _currentActivityIndex = 0;
-  
+  String? _aiFeedback;
+
   ActivityStatus _activityStatus = ActivityStatus.initial;
   int? _currentLessonId;
 
@@ -28,15 +31,15 @@ class LessonProvider extends ChangeNotifier {
   dynamic get currentActivity =>
       _activities.isNotEmpty ? _activities[_currentActivityIndex] : null;
   ActivityStatus get activityStatus => _activityStatus;
-  // EN lib/providers/lesson_provider.dart
+  String? get aiFeedback => _aiFeedback;
 
-bool get activityRequiresVerification {
-  if (currentActivity == null) return false;
+  bool get activityRequiresVerification {
+    if (currentActivity == null) return false;
 
-  final tipo = currentActivity['tipo'];
-  // Ahora, la verificación es necesaria para estos tres tipos
-  return tipo == 'ORACION' || tipo == 'VIDEO' || tipo == 'VOZ';
-}
+    final tipo = currentActivity['tipo'];
+    // Ahora, la verificación es necesaria para estos tres tipos
+    return tipo == 'ORACION' || tipo == 'VIDEO' || tipo == 'VOZ';
+  }
 
   // TODO: Añadir lógica para verificar la respuesta y saber si es correcta
   // bool _isAnswerCorrect = false;
@@ -59,16 +62,29 @@ bool get activityRequiresVerification {
     notifyListeners();
   }
 
-  void checkSentenceAnswer(String userAnswer) {
+  void checkSentenceAnswer(String userAnswer) async{
     if (currentActivity == null || currentActivity['tipo'] != 'ORACION') return;
 
-    final String correctAnswer = currentActivity['contenido']['frase_correcta'] ?? '';
+    final String correctAnswer =
+        currentActivity['contenido']['frase_correcta'] ?? '';
+
     
+    _aiFeedback = null;
     // Comparamos en minúsculas y sin espacios extra para ser más flexibles
     if (userAnswer.trim().toLowerCase() == correctAnswer.trim().toLowerCase()) {
       _activityStatus = ActivityStatus.correct;
     } else {
       _activityStatus = ActivityStatus.incorrect;
+      try {
+        // Necesitamos el nombre del idioma, que por ahora no tenemos aquí.
+        // Lo pondremos como "Portugués" de forma fija por ahora.
+        _aiFeedback = await _iaService.getErrorExplanation(
+            userAnswer: userAnswer,
+            correctAnswer: correctAnswer,
+            languageName: "portugués");
+      } catch (e) {
+        _aiFeedback = "No se pudo cargar la sugerencia.";
+      }
     }
     notifyListeners(); // Notificamos a la UI del cambio de estado
   }
@@ -78,8 +94,9 @@ bool get activityRequiresVerification {
     if (_currentActivityIndex < _activities.length - 1) {
       _currentActivityIndex++;
       _activityStatus = ActivityStatus.initial;
+      _aiFeedback = null; // <-- Limpiamos la retroalimentación
       notifyListeners();
-      return false; // No ha terminado
+      return false;
     } else {
       print("¡Lección completada!");
       if (_currentLessonId != null) {
@@ -91,25 +108,32 @@ bool get activityRequiresVerification {
   }
 
   void checkVideoAnswer(String? selectedOption) {
-  if (currentActivity == null || currentActivity['tipo'] != 'VIDEO' || selectedOption == null) {
-    // Si no hay opción seleccionada, no hacemos nada o podríamos marcarla como incorrecta
-    _activityStatus = ActivityStatus.incorrect;
-    notifyListeners();
-    return;
+    if (currentActivity == null ||
+        currentActivity['tipo'] != 'VIDEO' ||
+        selectedOption == null) {
+      // Si no hay opción seleccionada, no hacemos nada o podríamos marcarla como incorrecta
+      _activityStatus = ActivityStatus.incorrect;
+      notifyListeners();
+      return;
+    }
+
+    final String correctAnswer =
+        currentActivity['contenido']['respuesta_correcta'] ?? '';
+
+    // Comparamos la opción seleccionada con la respuesta correcta
+    if (selectedOption.trim().toLowerCase() ==
+        correctAnswer.trim().toLowerCase()) {
+      _activityStatus = ActivityStatus.correct;
+    } else {
+      _activityStatus = ActivityStatus.incorrect;
+    }
+    notifyListeners(); // Notificamos a la UI del cambio de estado
   }
 
-  final String correctAnswer = currentActivity['contenido']['respuesta_correcta'] ?? '';
-  
-  // Comparamos la opción seleccionada con la respuesta correcta
-  if (selectedOption.trim().toLowerCase() == correctAnswer.trim().toLowerCase()) {
-    _activityStatus = ActivityStatus.correct;
-  } else {
-    _activityStatus = ActivityStatus.incorrect;
-  }
-  notifyListeners(); // Notificamos a la UI del cambio de estado
-}
-
-Future<void> checkVoiceAnswer(int actividadVozId, String transcripcion) async {
+  Future<void> checkVoiceAnswer(
+    int actividadVozId,
+    String transcripcion,
+  ) async {
     // TODO: Mover esta lógica a un servicio (ej. VerificationService)
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('authToken');
@@ -132,7 +156,8 @@ Future<void> checkVoiceAnswer(int actividadVozId, String transcripcion) async {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final bool esCorrecta = data['es_correcta'] ?? false;
-        _activityStatus = esCorrecta ? ActivityStatus.correct : ActivityStatus.incorrect;
+        _activityStatus =
+            esCorrecta ? ActivityStatus.correct : ActivityStatus.incorrect;
       } else {
         _activityStatus = ActivityStatus.incorrect;
       }
@@ -153,5 +178,4 @@ Future<void> checkVoiceAnswer(int actividadVozId, String transcripcion) async {
       print('Fallo al actualizar el progreso del vocabulario: $e');
     }
   }
-  
 }
