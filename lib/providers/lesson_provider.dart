@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:treenguage/api/course_service.dart';
 
+enum ActivityStatus { initial, correct, incorrect }
+
 class LessonProvider extends ChangeNotifier {
   final CourseService _courseService = CourseService();
 
@@ -9,6 +11,8 @@ class LessonProvider extends ChangeNotifier {
   String? _errorMessage;
   List<dynamic> _activities = [];
   int _currentActivityIndex = 0;
+  
+  ActivityStatus _activityStatus = ActivityStatus.initial;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -16,6 +20,7 @@ class LessonProvider extends ChangeNotifier {
   int get currentActivityIndex => _currentActivityIndex;
   dynamic get currentActivity =>
       _activities.isNotEmpty ? _activities[_currentActivityIndex] : null;
+  ActivityStatus get activityStatus => _activityStatus;
   bool get activityRequiresVerification {
     if (currentActivity == null) return false;
     // Solo la actividad de ORACION requiere verificación por ahora
@@ -42,13 +47,49 @@ class LessonProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void checkSentenceAnswer(String userAnswer) {
+    if (currentActivity == null || currentActivity['tipo'] != 'ORACION') return;
+
+    final String correctAnswer = currentActivity['contenido']['frase_correcta'] ?? '';
+    
+    // Comparamos en minúsculas y sin espacios extra para ser más flexibles
+    if (userAnswer.trim().toLowerCase() == correctAnswer.trim().toLowerCase()) {
+      _activityStatus = ActivityStatus.correct;
+    } else {
+      _activityStatus = ActivityStatus.incorrect;
+    }
+    notifyListeners(); // Notificamos a la UI del cambio de estado
+  }
+
+  // 5. Modificamos goToNextActivity para resetear el estado
   void goToNextActivity() {
     if (_currentActivityIndex < _activities.length - 1) {
       _currentActivityIndex++;
+      _activityStatus = ActivityStatus.initial; // Reseteamos el estado para la nueva actividad
       notifyListeners();
     } else {
-      // La lección ha terminado
       print("¡Lección completada!");
+      // TODO: Navegar a una pantalla de felicitaciones
     }
   }
+
+  void checkVideoAnswer(String? selectedOption) {
+  if (currentActivity == null || currentActivity['tipo'] != 'VIDEO' || selectedOption == null) {
+    // Si no hay opción seleccionada, no hacemos nada o podríamos marcarla como incorrecta
+    _activityStatus = ActivityStatus.incorrect;
+    notifyListeners();
+    return;
+  }
+
+  final String correctAnswer = currentActivity['contenido']['respuesta_correcta'] ?? '';
+  
+  // Comparamos la opción seleccionada con la respuesta correcta
+  if (selectedOption.trim().toLowerCase() == correctAnswer.trim().toLowerCase()) {
+    _activityStatus = ActivityStatus.correct;
+  } else {
+    _activityStatus = ActivityStatus.incorrect;
+  }
+  notifyListeners(); // Notificamos a la UI del cambio de estado
+}
+  
 }

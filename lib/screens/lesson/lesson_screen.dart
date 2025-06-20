@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:treenguage/providers/lesson_provider.dart';
 import 'package:treenguage/widgets/lesson_activities/vocabulary_activity_widget.dart';
 import 'package:treenguage/widgets/lesson_activities/sentence_activity_widget.dart';
+import 'package:treenguage/widgets/lesson_activities/video_activity_widget.dart';
 
 class LessonScreen extends StatefulWidget {
   final int leccionId;
@@ -50,7 +51,21 @@ class _LessonScreenState extends State<LessonScreen> {
               ),
             ),
           ),
-          body: _buildBody(provider), // Usamos un método helper para el cuerpo
+          body: Column(
+            children: [
+              // El Expanded se asegura de que la actividad ocupe todo el espacio disponible
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildBody(
+                    provider,
+                  ), // _buildBody ahora solo devuelve el widget de la actividad
+                ),
+              ),
+              // El banner de retroalimentación
+              _buildFeedbackBanner(provider),
+            ],
+          ), // Usamos un método helper para el cuerpo
         );
       },
     );
@@ -71,26 +86,24 @@ class _LessonScreenState extends State<LessonScreen> {
     }
 
     // Si todo está bien, mostramos la actividad actual
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Aquí irá el widget de la actividad actual
-          Expanded(child: _buildActivityWidget(provider.currentActivity)),
-
-          // Botón para pasar a la siguiente actividad
-          ElevatedButton(
-            // Si la actividad no requiere verificación, el botón siempre está activo.
-            // Si la requiere, estará desactivado hasta que el usuario responda correctamente
-            // (añadiremos la lógica de _isAnswerCorrect más adelante).
+    return Column(
+      children: [
+        Expanded(child: _buildActivityWidget(provider.currentActivity)),
+        const SizedBox(height: 16),
+        // --- Lógica del Botón Siguiente ---
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            // El botón se activa si la respuesta es correcta O si la actividad no requiere verificación
             onPressed:
-                !provider.activityRequiresVerification
+                provider.activityStatus == ActivityStatus.correct ||
+                        !provider.activityRequiresVerification
                     ? () => provider.goToNextActivity()
-                    : null, // null deshabilita el botón
+                    : null, // Deshabilitado si la respuesta es incorrecta o inicial
             child: const Text('Siguiente'),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -105,11 +118,46 @@ class _LessonScreenState extends State<LessonScreen> {
         // Usamos nuestro nuevo y flamante widget interactivo
         return SentenceActivityWidget(contenido: contenido);
       case 'VIDEO':
-        return Center(child: Text('Actividad de Video'));
+        return VideoActivityWidget(contenido: contenido);
       case 'VOZ':
         return Center(child: Text('Actividad de Voz'));
       default:
         return Center(child: Text('Tipo de actividad desconocido: $tipo'));
     }
+  }
+
+  Widget _buildFeedbackBanner(LessonProvider provider) {
+    if (provider.activityStatus == ActivityStatus.initial) {
+      // Si el estado es inicial, no mostramos nada
+      return const SizedBox.shrink();
+    }
+
+    final bool esCorrecto = provider.activityStatus == ActivityStatus.correct;
+    final String mensaje =
+        esCorrecto
+            ? "¡Excelente!"
+            : "Respuesta incorrecta. ¡Inténtalo de nuevo!";
+    final Color colorFondo =
+        esCorrecto ? Colors.green.shade700 : Colors.red.shade700;
+    final IconData icono = esCorrecto ? Icons.check_circle : Icons.cancel;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: colorFondo,
+      child: Row(
+        children: [
+          Icon(icono, color: Colors.white),
+          const SizedBox(width: 16),
+          Text(
+            mensaje,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

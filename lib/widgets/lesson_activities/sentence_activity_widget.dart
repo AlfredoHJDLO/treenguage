@@ -1,5 +1,7 @@
 // lib/widgets/lesson_activities/sentence_activity_widget.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:treenguage/providers/lesson_provider.dart';
 
 class SentenceActivityWidget extends StatefulWidget {
   final Map<String, dynamic> contenido;
@@ -100,14 +102,16 @@ class _SentenceActivityWidgetState extends State<SentenceActivityWidget> {
         // Botón para verificar la respuesta (la lógica de verificación la pondremos en el provider)
         ElevatedButton(
           onPressed: () {
-            // TODO: Llamar al provider para verificar la respuesta
+            // Unimos las palabras seleccionadas para formar la respuesta
             String respuesta = _respuestaUsuario.join(' ');
-            print('Respuesta del usuario: $respuesta');
-            print('Respuesta correcta: $fraseCorrecta');
+            
+            // Llamamos al método del provider para verificar la respuesta
+            Provider.of<LessonProvider>(context, listen: false)
+                .checkSentenceAnswer(respuesta);
           },
           child: const Text('Verificar'),
           style: ElevatedButton.styleFrom(
-            minimumSize: Size(double.infinity, 50),
+            minimumSize: const Size(double.infinity, 50),
           ),
         ),
       ],
